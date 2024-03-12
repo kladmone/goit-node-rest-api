@@ -77,9 +77,12 @@ export const updateContact = async (req, res, next) => {
 
 export const contactStatusUpdate = async (req, res, next) => {
   try {
+    if (!req.body.hasOwnProperty("favorite")) {
+      throw HttpError(400);
+    }
     const { error } = updateContactStatusSchema.validate(req.body);
     if (error) {
-      throw HttpError(400, "Favorite status must be a boolean value");
+      throw HttpError(400);
     }
     const { id } = req.params;
     const result = await contactsServices.updateContactStatus(id, req.body);
