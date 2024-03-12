@@ -67,7 +67,7 @@ export const updateContact = async (req, res, next) => {
     const { id } = req.params;
     const result = await contactsServices.updateContactId(id, req.body);
     if (!result) {
-      throw HttpError(404, error.message);
+      throw HttpError(404, "Not found");
     }
     res.json(result);
   } catch (error) {
@@ -77,17 +77,14 @@ export const updateContact = async (req, res, next) => {
 
 export const contactStatusUpdate = async (req, res, next) => {
   try {
-    if (!req.body.hasOwnProperty("favorite")) {
-      throw HttpError(400);
-    }
     const { error } = updateContactStatusSchema.validate(req.body);
     if (error) {
-      throw HttpError(400);
+      throw HttpError(400, error.message);
     }
     const { id } = req.params;
     const result = await contactsServices.updateContactStatus(id, req.body);
     if (!result) {
-      throw HttpError(404);
+      throw HttpError(404, "Not found");
     }
     res.json(result);
   } catch (error) {
