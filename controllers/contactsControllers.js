@@ -6,9 +6,15 @@ import {
   updateContactStatusSchema,
 } from "../schemas/contactsSchemas.js";
 
-export const getAllContacts = async (req, res) => {
+export const getAllContacts = async (req, res, next) => {
   try {
-    const result = await contactsServices.listContacts();
+    const { _id: owner } = req.user;
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+    const result = await contactsServices.listContacts(
+      { owner },
+      { skip, limit }
+    );
     res.json(result);
   } catch (error) {
     next(error);
@@ -49,8 +55,8 @@ export const createContact = async (req, res, next) => {
     if (error) {
       throw HttpError(400, error.message);
     }
-    const result = await contactsServices.addContact(req.body);
-
+    const { _id: owner } = req.user;
+    const result = await contactsServices.addContact({ ...req.body, owner });
     res.status(201).json(result);
   } catch (error) {
     next(error);
