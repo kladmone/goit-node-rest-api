@@ -1,19 +1,34 @@
 import * as authServices from "../services/authServices.js";
 
+import fs from "fs/promises";
+
+import path from "path";
+
 import jwt from "jsonwebtoken";
 
 import HttpError from "../helpers/HttpError.js";
 
+import gravatar from "gravatar";
+
+import Jimp from "jimp";
+
 const { JWT_SECRET } = process.env;
+
+const avatarsPath = path.resolve("public", "avatars");
 
 const signup = async (req, res, next) => {
   try {
     const { email } = req.body;
     const user = await authServices.findUser({ email });
+    const avatarUrl = gravatar.url(email);
+    console.log(avatarUrl);
     if (user) {
       throw HttpError(409, "Email in use");
     }
-    const newUser = await authServices.signup(req.body);
+    const newUser = await authServices.signup({
+      ...req.body,
+      avatarURL: avatarUrl,
+    });
     res.status(201).json({
       user: {
         email: newUser.email,
@@ -73,9 +88,41 @@ const signout = async (req, res) => {
   res.status(204).json("No Content");
 };
 
+const changeAvatar = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await authServices.findUser({ id });
+    if (!user) throw HttpError(401, "Not athorized");
+    const { path: oldPath, filename } = req.file;
+    const newPath = path.join(avatarsPath, filename);
+
+    Jimp.read(filename)
+      .then((avatar) => {
+        return avatar.resize(250, 250).quality(60).greyscale().write(filename);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+
+    await fs.rename(oldPath, newPath);
+    const userAvatar = path.join("avatars", filename);
+    const result = await authServices.updateUserAvatar({
+      id,
+      ...req.body,
+      avatarURL: userAvatar,
+    });
+    res.status(200).json({
+      avatarURL: userAvatar,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   signup,
   signin,
   getCurrent,
   signout,
+  changeAvatar,
 };
