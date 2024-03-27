@@ -21,7 +21,6 @@ const signup = async (req, res, next) => {
     const { email } = req.body;
     const user = await authServices.findUser({ email });
     const avatarUrl = gravatar.url(email);
-    console.log(avatarUrl);
     if (user) {
       throw HttpError(409, "Email in use");
     }
@@ -90,24 +89,15 @@ const signout = async (req, res) => {
 
 const changeAvatar = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const user = await authServices.findUser({ id });
-    if (!user) throw HttpError(401, "Not athorized");
     const { path: oldPath, filename } = req.file;
     const newPath = path.join(avatarsPath, filename);
 
-    Jimp.read(filename)
-      .then((avatar) => {
-        return avatar.resize(250, 250).quality(60).greyscale().write(filename);
-      })
-      .catch((err) => {
-        console.error(err);
-      });
+    const avatar = await Jimp.read(oldPath);
+    avatar.resize(250, 250).quality(60).greyscale().write(oldPath);
 
     await fs.rename(oldPath, newPath);
     const userAvatar = path.join("avatars", filename);
-    const result = await authServices.updateUserAvatar({
-      id,
+    const result = await authServices.updateUser({
       ...req.body,
       avatarURL: userAvatar,
     });
